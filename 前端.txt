@@ -1,0 +1,65 @@
+html:
+	自动表单验证：
+		<input type="text" name="fname" required>
+		约束验证--css伪选择器
+	
+css:
+	pass
+	
+js:
+	加载：
+		<script src="xxx.js"></script>
+	调试：
+		console.log()方法输出
+		设置断点
+		debugger关键词
+	函数：
+		function my_function(a,b){
+			return a*b;
+		}
+		var x = function(a,b){return a+b};
+		Function构造
+	闭包：
+		var add = (function () {
+		var counter = 0;
+		return function () {counter += 1; return counter;}
+		})();
+	cookie：
+		创建cookie：
+			document.cookie = "username:xxx; xxx=xxx; path=/"
+		获取cookie:
+			var x = document.cookie;
+		删除cookie：
+			要指定路径
+	特殊：
+		Hoisting 是 JavaScript 将所有声明提升到当前作用域顶部的默认行为
+		（提升到当前脚本或当前函数的顶部）
+		call/apply方法：
+			call()使用另一个对象的方法
+			apply()接收数组参数
+		setInteval(函数, 时间)：
+			每多长时间执行一次这个函数
+			var id = setInterval(frame, 5);
+			clearInterval(id);
+
+Ajax：
+	XMLHttpRequest对象:
+		方法：
+			new XMLHttpRequest()
+			abort()--取消
+			getAllResponseHeader()
+			getResponseHeader()
+			open(method,url,async,user,psw):
+				后两个可选
+			send()/send(string)
+			setRequestHeader()
+		对象属性:
+			status--状态号
+			responseText
+			readyState
+	
+Websocket：
+	pass
+		
+		
+		

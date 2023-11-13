@@ -1,0 +1,829 @@
+入门：
+    思路：
+        查壳：
+            工具：
+                PEID
+        分析：
+            静态分析（IDA）
+            动态分析（OD、EDB）
+        题目分类：
+            破解类
+            算法分析类
+            绕过保护类
+    要点：
+        关键代码--算法：
+            运算
+            循环
+        如何快速找到关键代码：
+            字符串搜索
+            关键函数(API断点)
+    辅助：
+        记事本
+        计算器
+    例题：
+        OD
+        双击下断点
+C+汇编：
+    数据类型：
+        int 4byte -- 0~0XFFFFFFFF
+        short 2byte -- 0~0XFFFF
+        char 1byte -- 0~0XFF
+        long 4byte -- 0~0XFFFFFFFF
+        float 4byte 存储方式是IEEE编码
+        有符号数和无符号数：
+            signed 0~127,-128~-1
+            unsigned 0~255
+            编译器默认有符号数
+            但是对于计算机没有区别！，是使用者的选择
+            但是对于编译器在比较和扩展的时候有区别
+        例：
+            char x=1; //00000001--0x01
+            char y=-1; //11111111--0xFF
+            原码反码补码：
+                原码：
+                    最高位为符号位
+                反码：
+                    正数的反码和原码一致
+                    负数的反码按位取反，最高位(符号位不变)
+                补码：
+                    正数的补码与原码一致
+                    负数的补码是该数的反码加1
+                ！计算机的数字运算和存储均是基于补码的！
+    栈：
+        栈顶esp
+        栈底ebp
+    函数：
+        堆栈传参数
+        call调用函数(F11跟进去)
+        jmp不影响堆栈
+        参数传递从右向左
+        基本流程：
+            保存ebp,esp
+            ebp=esp
+            sub esp-->拉高栈位-->中间有一段缓冲区
+            push寄存器-->保存状态
+            rep stos-->缓冲区填充CC
+            执行函数
+            函数结束以后恢复寄存器和堆栈
+            最后恢复堆栈平衡
+            返回值在eax
+        注：
+            ebp+4是返回地址
+    变量：
+        全局变量：
+            地址不变(基址)
+        局部变量：
+            地址是在堆栈中临时分配的
+            缓冲区CC用于存储局部变量
+    分支语句：
+        if-else:
+            通过条件跳转
+        switch-case-break-default
+    循环：
+        goto<==>jmp 标号
+        while：
+            先判断再执行后面的东西。
+        for:
+            赋值-判断-执行循环-操作-判断-执行循环。。。
+        其他都是类似的思路。
+    数组：
+        地址从小往大在栈中排列
+        注：
+            本机宽度--4字节对齐
+        多维==一维
+        可以溢出
+    结构体：
+        字节对齐
+        改变对齐：
+            #pragma pack()  1,2,4,8
+            取小的那个
+        结构体数组连续存储
+        !!字节对齐对于结构体的存储比较重要
+    指针：
+        变量宽度永远是4字节！！！
+        赋值不能简写
+        例：
+            int** x;
+            x = (int**)3;
+        指针类型++/--的量是去掉一个*之后的宽度
+        指针不能做乘除，只能做加减，运算规则同上
+        属于无符号类型
+        取地址符&:
+            结果是原变量加*
+        取值运算符*
+        ！用结构体指针读取结构体内容是用"->"!：
+			例Point* p = &p;
+			p->x = 1;
+        特：
+            数组指针：
+                int(*pp)[10] -->pp是变量名
+                int(*tt)[2][2]
+                同样是指向数组的0位置
+                好像只是加减运算的时候有区别
+            函数指针(重要)：
+                返回类型 (调用约定 *变量名)(参数列表);
+                例：
+                    int (__cdecl *pFun)(int,int)
+                函数指针没办法做加减
+    调用约定(常用)：
+        __cdecl(默认)：
+            从右至左入栈
+            调用者清理栈(平衡堆栈)
+        __stdcall:
+            从右至左入栈
+            自身清理堆栈(ret x)
+        __fastcall:
+            ecx/edx传送前两个
+            剩下的从右至左入栈
+            自身清理堆栈
+        例：
+            int __cdecl(int x){return 1;}
+    预处理(对代码源文件处理)：
+        宏定义:
+            #define
+        文件包含
+        条件编译：
+            #if 1
+            #endif
+    c++部分:
+        结构体传参==>所有参数压栈
+        封装==>把函数写在结构体里面
+        this=>ecx取结构体首地址
+        析构函数：
+            ~类名(){}
+            对象销毁的时候call
+            不可以重载
+            不可以带参数    
+        继承：
+			用冒号来继承另一个结构体
+        new==>malloc+构造函数
+        new[]申请数组 --> delete[]
+        引用类型：
+            int& ref = x
+            当前变量的一个别名
+            必须有初始值
+            (实现上基本就是指针)
+            特：
+                常引用(const)
+        多态：
+            父类指针指向子类对象
+            并让父类的指针具有多种形态(virtural虚函数)
+            采用间接调用的方式实现
+            虚函数占4bytes-->虚表(存的是虚函数的地址)
+        运算符重载：
+            operator(一种语法格式)
+        模板：
+            template<class T>
+            用作类型替换
+            本质上是不同的函数
+            可以在类中使用(并重载运算符):
+                Base<int,char> base;
+        纯虚函数：
+            类似于java中的抽象类
+            没有函数体(=0)
+        拷贝构造函数：
+            风险：
+                会复制指针!!!(浅拷贝)
+                深拷贝需要自己去重写拷贝构造函数
+            可以直接用等号(=)拷贝构造(依然是浅拷贝)
+                深拷贝要自己重写赋值运算符函数
+        static:
+            私有全局
+            单子模式
+win32部分：
+    字符编码：
+        unicode字符集规定了对应的二进制编码
+        但是没有规定怎么存储
+        utf-8/utf-16规定了怎么去存储：
+            utf-16:
+                两个字节一组，一个汉字有可能是2字节也可能是4字节
+                unicode没有说明的话默认是utf-16
+            utf-8:
+                0x000000-0x00007F==0xxxxxxx(1byte)
+                0x000080-0x0007FF==110xxxxx 10xxxxxx(2bytes)
+                0x000800-0x00FFFF==1110xxxx 10xxxxxx 10xxxxxx(3bytes)
+                0x010000-0x10FFFF==11110xxx 10xxxxxx 10xxxxxx 10xxxxxx(4bytes)
+                上面的x为真正有效的数据
+            BOM(Byte Order Mark):
+                UTF-8==EF BB BF
+                UTF-16LE==FFFE
+                UTF-16BE==FEFF
+    c语言中的宽字符：
+        char str[] = "中国"; // gbk
+        wchar_t str[] = L"中国"; // utf-16-->宽字符
+        有一些专门的函数用于处理宽字符：
+            wcslen
+            wcscpy
+            wprintf
+        宏定义的使用：
+            TCHAR s[] = TEXT("hahaha"); -->根据项目设定转化为ascii或者utf16
+    win32api中的宽字符：
+        主要是C:\WINDOWS\system32下的dll
+        system32中的dll是64位的
+        systemWOW64中的dll是32位的(迷惑行为)
+        Kernel32.dll-->内存相关
+        User32.dll-->创建窗口
+        GDI32.dll-->图形化函数
+        F12了解类型本质
+        MessageBoxA/W
+    进程：
+        提供程序所需资源(代码和数据)-->PE文件
+        进程内存空间的地址划分
+        每个进程有4G虚拟空间，其中2G是公用的内核
+        00000000-0000FFFF 空指针赋值区
+        00010000-7FFEFFFF 用户模式区
+        7FFF0000-7FFFFFFF 64KB禁入区
+        80000000-FFFFFFFF 内核
+        创建：
+            由explorer调用CreateProcess()
+            过程：
+                1.映射exe文件--进内存
+                2.创建!内核!对象EPROCESS(在内核中)
+                3.映射系统dll（ntdll.dll）
+                4.创建线程内核对象ETHREAD(也在内核中)
+                5.系统映射dll-->线程开始执行
+                (狸猫换太子~)
+        CreateProcess:
+            bool CreateProcess();
+                对象名称
+                命令行
+                两个结构体
+            4个参数
+            in/out参数：
+                控制传入传出变量、结构体
+            GetLastError:
+                用于判断api函数是否执行成功
+            反调试：
+                通过GetStartupInfo获取父进程填写的信息从而达到反调试的效果！
+        句柄表(EPROCESS的私有的概念)：
+            创建时返回的PROCESS_INFORMATION结构体中：
+                进程句柄
+                线程句柄---PID
+                进程id
+                线程id
+            CloseHandle关闭句柄：
+                将计数器的值-1
+                为0以后才会关闭
+            每一个进程都有一个句柄表-->写内核对象的地址
+            相当于一层防火墙
+            ！线程没死进程就不会死
+            只要有安全描述符的就是内核对象
+            多进程共享一个内核对象：
+                OpenProcess
+                两个进程的句柄表的映射不一样
+        进程相关api：
+            全局句柄表--属于操作系统
+            TerminateProcess(hprocess, 1);
+                终结一个进程
+            获取进程PID：
+                GetCurrentProcessId
+            获取进程句柄：
+                GetCurrentProcess
+            获取命令行：
+                GetCommandLine
+            获取启动信息：
+                GetStartupInfo
+            遍历进程PID：
+                EnumProcesses
+            快照：
+                CreateToolhelp32Snapshot
+    线程：
+        CreateThread();
+        线程控制：
+            挂起SuspendThread(线程句柄)
+            恢复ResumeThread(线程句柄)
+            !可以挂起多次!
+            等待执行变动:
+                WaitForSingleObject();
+                WaitForMultipleObject();
+            获得返回值：
+                GetExitCodeThread();
+            CONTEXT(上下文)用于进程切换的时候保存寄存器的值
+                GetThreadContext();
+        临界区：
+            线程安全问题
+            临界资源-->一次只允许一个线程访问的资源
+            需要构建临界区-->令牌
+            winapi-->原子操作？
+            临界区实现线程锁：
+                创建全局变量：
+                    CRITICAL_SECTION cs;
+                初始化全局变量：
+                    InitializeCriticalSection(&cs);
+                实现临界区：
+                    EnterCriticalSection(&cs);
+                    LeaveCriticalSection(&cs);
+        互斥体：
+            跨进程访问同一内核资源
+            互斥体-->内核中的令牌
+            创建：
+                HANDLE g_hMutex = CreateMutex(NULL, FALSE, "XYZ");
+                WaitForSingleObject(g_hMutex, INFINITE);
+                ReleaseMutex(g_hMutex);
+            可以控制防止游戏多开：
+                创建同一个互斥体然后获取句柄
+                GetLastError();
+        事件：
+            CreateEvent();
+            通知类型(不改状态)/互斥类型(改状态)
+            SetEvent();-->修改信号
+            实现线程同步：
+                同步的前提是互斥
+                同步=互斥+有序
+                通过互斥类型的事件可以实现线程同步
+        
+        窗口：
+            kernel32.dll-->ntoskrnl.exe(内核模块):
+                进程线程内存管理
+            user32.dll(GUI)+gdi32.dll(GDI)-->win32k.sys(内核模块):
+                图形界面消息管理
+            HWND“全局表”的索引(也是一种句柄)
+            GDI：
+                图形设备接口
+                1.设备对象--》画在哪儿(HWND):
+                    hwnd = (HWND)0x000E3421;
+                    空的话就是桌面
+                2.DC(设备上下文DeviceContext):
+                    获取设备对象上下文
+                    hdc = GetDC(hwnd);
+                3.图形对象：
+                    创建画笔：
+                    hpen = CreatePen(PS_SOLID,5,RGB(0xFF,00,00));
+                    画刷：
+                    hBrush
+                    GetStockObject()-->获取操作系统的默认值
+                4.关联：
+                    SelectObject(hdc,hpen);
+                5.开始画LineTo:
+                    MoveToEX(hdc,0,400,NULL);
+                    LineTo(hdc,400,400);
+                    Rectabgle(hdc,0,0,400,400);
+                6.释放资源：
+                    DeleteObject(hpen);
+                    ReleaseDC(hwnd,hdc);
+            窗口的本质是画出来的
+        消息队列：
+            消息是一个结构体
+            每个线程只有一个消息队列
+        winapplication:
+            入口WinMain();
+            HINSTANCE-->对象在0环，这只是一个句柄
+            打印信息：
+                sprintf();
+                OutputDEbugString();
+            第一步定义窗口是什么样的：
+				typedef struct tagWNDCLASSA {
+				  UINT      style;
+				  WNDPROC   lpfnWndProc;
+				  int       cbClsExtra;
+				  int       cbWndExtra;
+				  HINSTANCE hInstance;
+				  HICON     hIcon;
+				  HCURSOR   hCursor;
+				  HBRUSH    hbrBackground;
+				  LPCSTR    lpszMenuName;
+				  LPCSTR    lpszClassName;
+				} WNDCLASSA, *PWNDCLASSA, *NPWNDCLASSA, *LPWNDCLASSA;
+                WNDCLASS wndclass={0};
+                wndclass.hbrBackground = ...
+                wndclass.lpszClassName = ...
+                wndclass.hInstance = 当前程序的hInstance
+                wndclass.lpfnWndProc(窗口程序(窗口过程函数地址))
+            第二步注册窗口类：
+                RegisterClass(&windclass)
+            第三部创建并显示窗口：
+                CreateWindow();
+                返回窗口句柄
+                ShowWindow();
+            第四部接收消息并处理：
+                GetMessage();
+                MSG msg;用于接收的结构体
+                转换消息:
+                    TranslateMessage();
+                分发消息：
+                    DispatchMessage();
+                    调用消息处理函数:
+                        要调用默认的消息处理函数
+            消息类型：
+                主要是消息过程函数的处理
+                几个参数的含义
+            子窗口控件：
+                控件会自己处理消息，并在自己状态发生改变的时候通知父窗口
+                按钮、复选框、编辑框、静态字符串和滚动条等
+                CreateWindow("EDIT/BUTTON");
+                区分消息和判断等等
+    虚拟内存和物理内存：
+        每个进程4Gb-->假的(虚拟内存)
+        真正用的时候分配物理内存空间出来
+        intel-->4kb 物理页api
+        虚拟内存结构上面记录过了
+    私有内存的申请释放：
+        分为私有和Map
+        申请内存的两种方式：
+            VirtualAlloc();/VirtualAllocEx();
+                释放：
+                    VirtualFree();
+            通过CreateFileMapping映射：
+                可以映射文件到物理页
+                共享内存
+                MapViewOfFile();//关联虚拟地址
+                UnmapViewOfFile();
+                CloseHandle();
+        malloc是假申请，已经有了这些内存
+    文件系统：
+        是软件层面
+        例：
+            NTFS--可以EFS加密--支持磁盘配额
+            FAT32
+        卷相关api：
+            一个盘就是一个卷
+            获取卷：
+                GetLogicalDrives()
+            获取一个所卷的盘符的字符串:
+                GetLogicalDrivesStrings()
+            获取卷的类型：
+                GetDriveType()
+            获取卷信息：
+                GetVolumeInformation()
+        目录相关api：
+            创建目录：
+                CreateDirectory("C:\\A", NULL)
+            修改目录名称：
+                MoveFile()
+            获取程序当前目录：
+                GetCurrentDirectory()
+            设置程序当前目录：
+                SetCurrentDirectory()
+        文件相关api：
+            创建文件：
+                CreateFile()
+            获取文件长度：
+                GetFileSize()
+            获取文件的属性和信息：
+                GetFileAttibuteEx()
+            读文件：
+                SetFilePointer()
+                ReadFile()
+            写入文件：
+                WriteFile()
+            拷贝文件：
+                CopyFile()
+            删除文件：
+                DeleteFile()
+            查找文件：
+                FindFirstFile()
+                FindNextFile()
+    内存映射文件：
+        CreateFile()
+        CreateFileMapping()/OpenFileMapping()
+        MapViewOfFile()
+        ---关闭资源
+        UnmapViewOfGile()
+        CloseHandle()
+        CloseHandle()
+        强制更新缓存：
+            FlushViewOfFile()
+        文件共享：
+            写拷贝
+    静态链接库：
+        .lib
+        .h
+        要编译
+    动态链接库：
+        .dll .ocx
+        具体实现:
+            1.通过声明：
+                EXTERN_C _declspec(dllexport) 调用约定 函数类型 函数名（参数列表）
+                例：EXTERN_C _declspec(dllexport) _stdcall int plus(int x, int y);
+            2.通过导出表
+                EXPORTS
+                函数名 @编号
+                函数名 @编号 NONAME
+        -->导出表：
+            详细记录提供的能用的函数信息
+        用.def定义导出表
+        使用dll： 
+            定义函数指针:
+                typedef int (_stdcall *lpplus)(int,int);
+                typedef int (_stdcall *lpsub)(int,int);
+            声明函数指针变量:
+                lpplus my_plus;
+                lpsub my_sub;
+            LoadLibrary()
+            给函数指针赋值：
+                GetProcAddress  
+            释放：
+                FreeLibrary
+    隐式链接：
+        动态链接库+.lib
+        使用：
+            #pragma comment(lib,"A.lib")
+            //加入函数声明
+            __declspec(dllimport) _stdcall int plus(int x, int y);
+        导入表：
+            当使用隐式链接的时候会出现dll名
+        和显示链接没有本质的区别，主要是操作系统多做了一些事
+    DLL入口函数：
+        DllMain(HANDLE hModule, 
+                DWORD  ul_reason_for_call, 
+                LPVOID lpReserved)
+            参数1：
+                被加载到什么位置
+            参数2：
+                被调用的原因(4种)
+                1.DLL_PROCESS_ATTACH:
+                    第一次执行LoadLibrary
+                2.DLL_PROCESS_DETACH:
+                    FreeLibrary
+                3.DLL_THREAD_ATTACH
+                4.DLL_THREAD_DETACH
+        可能会执行很多次
+    远程线程：
+        CreateRemoteThread();
+        在别的进程里创建新的线程
+        ！线程函数是别的进程中的
+    远程线程注入：
+        注入手段：
+            远程线程注入
+            APC注入
+            消息钩子注入
+            注册表注入
+            导入表注入
+            输入法注入等
+        远程线程注入手段：
+			远程线程指向->LoadLibrary(); 
+            4字节返回值
+            4字节参数
+        具体实现步骤：
+			1.在A进程中分配空间，存储"X.dll"
+			2.获取LoadLibrary函数的地址
+			3.创建远程线程，执行LoadLibrary函数
+        VirtualAllocEx:
+            在任意进程中分配内存
+        WriteProcessMemory：
+			写入dll路径字符串
+    进程间通信：
+        共享内存的方式-->简单外挂
+        创建物理页：
+			CreateFileMapping()+OpenFileMapping()
+		MapViewOfFile-->映射同一块内存
+		通过CopyMemory进行读写
+		循环读取命令队列:
+			通过内联汇编的方式调用各种函数	
+        dll卸载自己并退出：
+            freeLibraryAndExitThread();
+    模块隐藏：
+		模块隐藏之断链：
+			1.TEB(thread environment block)结构体(三环的结构体)：
+				一个线程一个TEB-->fs:[0]
+			2.PEB(process environment block)结构体(三环的结构体):
+				当前进程的信息
+				TEB+0x30的位置是PEB的地址,->fs:[0x30]
+        把链表断掉就行了
+        VAD树能看出来
+        遍历内存查PE指纹也能看出来
+        最好是无模块注入-》代码注入
+    代码注入：
+		先复制代码，再远程线程。
+		注意点：
+			不能使用全局变量(字符串)
+			不能使用系统调用
+			不能嵌套函数
+		过程：
+			复制函数
+			复制参数
+			远程线程调用
+		VirtualAllocEx分配内存空间
+        WriteProcessMemory复制需要用到的数据和函数
+网络编程：
+	socket:
+	流式套接字 非流式套接字
+		#include<WinSock2.h>       //对应socket2版本
+		#pragma comment(lib, "ws2_32.lib")
+		然后初始化
+		具体见博客https://www.cnblogs.com/Mz1-rc/p/14073232.html
+        
+        
+        
+        
+        
+        
+
+硬编码：
+    就是机器码指令格式
+    X86-X64-AMD
+    x86:
+        每个指令最少一个字节，最长15个字节
+        前缀指令：
+            (optional)
+            四个组：
+                每组最多出现一个
+                1:
+                    LOCK F0
+                    REPNE/REPNZ F2
+                    REP/REPZ F3
+                2段前缀指令:
+                    CS(2E)
+                    SS(36)
+                    ......
+                    改变寻址的段寄存器
+                3改变操作数宽度的前缀指令：
+                    66
+                4地址宽度前缀指令：
+                    67-->改变寻址方式
+                    
+PE文件结构：
+    pe的识别(PE指纹)：
+        前两个字节MZ
+        3C的位置查PE
+    PE文件的整体结构：
+        1.DOS部分
+        2.PE文件头
+        3.节表
+        4.节数据
+        <winnt.h>
+    PE文件的两种状态：
+        DOS-MZ文件头：
+            IMAGE_DOS_HEADER 结构体（64bytes）：
+				LONG   e_lfanew
+                最后一个成员指向PE头
+            DOS Stub -->DOS块：
+                是链接器加的
+                想写什么就写什么
+        PE文件头：
+            _IMAGE_NT_HEADERS (IMAGE_NT_HEADERS32)
+                包括3部分:
+                    1.PE标记：
+                        PE\x00\x00
+                    两个结构体：
+						1.IMAGE_FILE_HEADER-->标准PE头
+							(20bytes(0x14))
+							倒数第二个成员SizeOfOptionalHeader
+								标识扩展PE头的大小
+						2.IMAGE_OPTIONAL_HEADER32-->扩展PE头
+							32位：224bytes=0xe0
+							64位:0xf0
+							最后一个成员是一个数组指向结构体*16个
+							有一个成员是SizeOfHeaders:
+								DOS头加PE头加节表然后文件对齐以后的大小
+								大小是FileAlignment的整数倍
+							还有一个成员是FileAlignment:
+								0x200或0x1000
+								标志文件对齐
+								在FileAlignment上面有内存对齐的大小：
+									SectionAlignment
+		节表：
+			n*IMAGE_SECTION_HEADER结构体(40bytes)
+			后面好多00没啥用
+        节数据：
+			同样遵守文件对齐
+			中间会有好多0
+		两种状态：
+			内存和硬盘中的状态
+			内存对齐！
+	DOS头属性说明：
+		_IMAGE_DOS_HEADER(64BYTES)
+		是给16位的程序看的，现在除了第一个和最后一个成员变量，都可以删掉
+		第一个：PE指纹
+		最后一个：e_lfanew-->PE头开头
+	标准PE头属性说明：
+		20bytes
+		struct IMAGE_FILE_HEADER
+		{
+			WORD Machine; //可以运行在什么样的cpu上(0000-->任意)
+			WORD NumberOfSections;  //节的数量
+			DWORD TimeDateStamp;  // 编译器填写的时间戳
+			DWORD PointerToSymbolTable; //调试相关
+			DWORD NumberOfSymbols; //调试相关
+			WORD SizeOfOptionalHeader; //可选pe头的大小(32位0xe0,64位0xf0)
+			WORD Characteristics; //文件属性
+		}
+	扩展PE头属性说明：
+		重要成员：
+			第一个WORD Magic:
+				PE32:10B
+				PE32+:20B
+			DWORD AddressOfEntryPoint:
+				程序入口
+				*程序从哪里开始跑->ImageBase+AddressOfEntryPoint
+			DWORD ImageBase：
+				内存镜像基址
+				*加载进内存的时候从哪个虚拟内存地址展开
+			内存对齐和文件对齐
+			DWORD SizeOfImage:
+				pe文件内存展开以后有多大
+				必须是内存对齐的整数倍
+			DWORD SizeOfHeader：
+				所有头加节表按照文件对齐后的大小
+			DWORD CheckSum:
+				校验和，一些系统文件有要求，用来判断文件是否被修改
+				多用于系统文件
+	节表：
+		PE文件的两种状态->文件对齐和内存对齐
+		IMAGE_SECTION_HEADER结构体(40bytes)：
+			typedef struct _IMAGE_SECTION_HEADER {
+				BYTE    Name[IMAGE_SIZEOF_SHORT_NAME]; //名字(可改)：8bytes的ascii数组
+				union {                                //当前节的真实大小是多少（对齐前的大小）
+					DWORD   PhysicalAddress;
+					DWORD   VirtualSize;
+				} Misc;
+				DWORD   VirtualAddress;     //在内存中的偏移地址 需要加上ImageBase
+				DWORD   SizeOfRawData;		//在文件中对齐后的大小 可能比Misc大或小，涉及到全局变量有没有初始值的问题，谁大取谁
+				DWORD   PointerToRawData;    //节区在文件中的偏移
+				DWORD   PointerToRelocations;     //调试相关
+				DWORD   PointerToLinenumbers;     //调试相关
+				WORD    NumberOfRelocations;     //调试相关
+				WORD    NumberOfLinenumbers;      //调试相关
+				DWORD   Characteristics;            //节的属性-读 写 执行等等
+			} IMAGE_SECTION_HEADER, *PIMAGE_SECTION_HEADER;
+	RVA与FOA的转换：
+		引出问题：如果想改变全局变量的初始值，该怎么做？
+		如果有初始值，初始值是存在PE文件中的。
+		在文件中和在内存中的对齐方式不一样。
+		内存中展开从ImageBase（扩展PE头中）开始，然后依次对齐。
+		RVA：
+			相对虚拟地址
+			=内存中的地址-ImageBase
+		FOA：
+			file offset address
+		转化：
+			1.判断RVA是不是在头部，如果在直接查
+			2.判断当前的值在哪一个节里面，与节表中的VritualAddress进行比较
+				如果在，用RVA-节.VirtualAddress算出偏移
+				FOA = 节.PointerToRawData + 偏移
+		反过来的转化同理~
+	在PE文件的空白区添加代码：
+		相当于加壳~
+		主要思路：
+			0.构造要写入的代码：
+				例MessageBox:
+				(push 00)*4 = 6a00
+				call MessageBox(通过要跳转的地址-E8这行指令的地址-5):
+					相对跳转
+					E8 xx xx xx xx
+				jmp 回到正常的执行流程：
+					同上也是相对跳转
+					E9 xx xx xx xx
+				硬编码：
+					6a00 
+					6a00 
+					6a00 
+					6a00 
+					e800000000
+					e900000000
+					一共18个bytes
+			1.在PE的空白区构造一段代码:
+				通常写在哪儿都行
+				目前的跳转目标是在自己的机器上能运行
+				所以直接查MessageBox在user32.dll中的地址
+					M地址-在内存中的地址(ImageBase+偏移)-5
+				找扩展pe头中的AddressOfEntryPoint，计算怎么跳回去
+			2.修改入口地址为新增代码：
+				修改AddressOfEntryPoint指向shellcode
+			3.新增代码执行后跳回入口地址
+	扩大节：
+		为什么要扩大节？
+			pe文件空白区不一定够用
+		如何扩大节：
+			一般来说选择最后一个节
+			步骤：
+				1.分配一块新的空间，大小为S
+				2.将最后一个节的SizeOfRawData和VirtualSize改为N
+					N = (SizeOfRawData/VirtualSize内存对齐后的值)+S
+				3.修改SizeOfImage大小
+				4.可能要改节属性
+	新增节：
+		标准pe头中有节数量的属性
+		1.判断节表中是否有足够的空间可以增加一个节表结构体
+		2.在节表中新增一个成员
+		3.修改PE头中的节的数量
+		4.修改SizeOfImage的大小
+		5.在原有数据的最后，新增一个节的数据(内存对齐的整数倍)
+		6.修改新增节表的属性
+	合并节：
+		1.按照内存对齐展开
+		2.将第一个节的内存大小，文件大小改成一样
+			Max = SizeOfRawData>VirtualSize?SizeOfRawData:VirtualSize
+			SizeOfRawData=VirtualSize=最后一个节的VirtualAddress+Max-SizeOfHeaders
+		3.修改第一个节的属性，包含所有的节的属性
+		4.修改节的数量为1
+	导出表：
+		提供了哪些函数给别人用
+		通常情况下exe不提供导出表
+		如何定位导出表：
+			在扩展pe头的最后一个成员(16个结构体*8bytes)中查找
+			导出表的属性在第一个结构体中：
+				第一个DWORD是导出表的RVA，要先转化成FOA
+				然后就可以找到导出表结构体 
+		有一个巨复杂的查找规则。。。
+		
+		
+		
+		
+        
+        
+        
+        
+        
+        
+        

@@ -1,0 +1,33 @@
+匿名内部类：
+	只用一次的类/变量
+	new ActionListener(){
+		public void actionPerformed(){
+		 xxxxxxxxxxx;
+		}
+	}
+	-->new 被继承类的类标识符/被实现的接口名(){
+		类里头的内容blabla
+	}
+匿名(Anonymous): 
+	省略标识符(变量、函数、类)
+图形化用户界面的步骤：
+	组件设计：
+		1.容器组件的设计：
+			Frame
+			Panel
+		2.非容器组件的设计：
+			Button
+			Label
+	容器组件的布局设计：
+		1.定义容器的布局管理器
+		2.容器组件包含组件大小和位置
+	组件事件设计(响应):
+		推荐使用内部类负责事件处理
+		lambda：
+			(e) -> {xxxx;}
+
+
+
+
+
+

