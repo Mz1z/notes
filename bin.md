@@ -118,18 +118,18 @@ public:
 第一个DWORD是导出表的RVA，要先转化成FOA
 然后就可以找到导出表结构体 
 
-**关键结构体：_IMAGE_EXPORT_DIRECTORY**
+**导出表关键结构体：_IMAGE_EXPORT_DIRECTORY（40bytes）**
 
 ```c
 typedef struct _IMAGE_EXPORT_DIRECTORY {
-    DWORD   Characteristics;
+    DWORD   Characteristics;      // 未使用
     DWORD   TimeDateStamp;
-    WORD    MajorVersion;
-    WORD    MinorVersion;
-    DWORD   Name;
-    DWORD   Base;
-    DWORD   NumberOfFunctions;
-    DWORD   NumberOfNames;
+    WORD    MajorVersion;         // 未使用
+    WORD    MinorVersion;         // 未使用
+    DWORD   Name;                 // 指向导出表文件名字符串
+    DWORD   Base;                  // 导出函数起始序号
+    DWORD   NumberOfFunctions;     // 所有导出函数个数
+    DWORD   NumberOfNames;          // 以名字导出的函数个数
     DWORD   AddressOfFunctions;     // RVA from base of image
     DWORD   AddressOfNames;         // RVA from base of image
     DWORD   AddressOfNameOrdinals;  // RVA from base of image
@@ -138,9 +138,9 @@ typedef struct _IMAGE_EXPORT_DIRECTORY {
 
 **重要的有三张表：**
 
-1. 函数地址表
+1. 函数地址表（每个成员4bytes（32位程序），RVA）
 
-2. 函数名称表
+2. 函数名称表（RVA）
 
 3. 序号表（2bytes）
 
