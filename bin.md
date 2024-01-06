@@ -1021,11 +1021,27 @@ TSS允许我们替换所有寄存器。
 
 ![image-20211109132844715](/img/image-20211109132844715.png)
 
+> _KUSER_SHARED_DATA结构体内容如下：
+>
+> ![image-20240106161614860](/img/image-20240106161614860.png)
+>
+> 注意到0x300的位置上是SystemCall 4Bytes,这个地方其实存的就是系统调用函数的地址。
+
+
+
 ![image-20211109133039825](/img/image-20211109133039825.png)
 
-0x7FFE0300中存储的是什么？
+> 0x7FFE0300中存储的是什么？就是上面的SystemCall函数的地址。
 
 ![image-20211109133232378](/img/image-20211109133232378.png)
+
+> 何如判定，使用到cpuid指令：
+>
+> cpuid指令的参数通过eax传递。
+>
+> eax=1时，返回值在ecx&edx中。
+
+
 
 #### 进ring0需要修改哪些寄存器
 
@@ -1036,11 +1052,11 @@ TSS允许我们替换所有寄存器。
 
 上面的两个函数就是用来进ring0的。
 
-ntdll!KiIntSystemCall()是通过中断门进入内核的：
+`ntdll!KiIntSystemCall()`是通过**中断门**进入内核的：
 
 ![image-20211109133615546](/img/image-20211109133615546.png)
 
-ntdll!KiFastSystemCall函数是通过快速调用进ring0的：
+`ntdll!KiFastSystemCall()`函数是通过快速调用进ring0的：
 
 ![image-20211109133705689](/img/image-20211109133705689.png)
 
@@ -1051,6 +1067,65 @@ ntdll!KiFastSystemCall函数是通过快速调用进ring0的：
    步骤2：分析CS/SS/ESP/EIP的来源
 
    步骤3：分析EIP是什么
+
+接下来会进入到nt!KiSystemService函数中，这里已经是内核模块。
+
+2. sysenter指令进r0
+
+   需要的寄存器值保存在MSR寄存器中。
+
+接下来会执行的函数是nt!KiFastCallEntry()；
+
+内核模块：ntoskrnl.exe/ntkrnlpa.exe
+
+### API调用的保存现场
+
+TODO
+
+
+
+## 进程与线程
+
+### 进程结构体EPROCESS(r0)
+
+```
+kd> dt _EPROCESS
+第一个成员是pcb KPROCESS结构体
+```
+
+![image-20240106165333768](/img/image-20240106165333768.png)
+
+KPROCESS结构体中最重要的是第三个成员，是页表基址。
+
+![image-20240106170228537](/img/image-20240106170228537.png)
+
+![image-20240106170330157](/img/image-20240106170330157.png)
+
+![image-20240106170646260](/img/image-20240106170646260.png)
+
+![image-20240106170927494](/img/image-20240106170927494.png)
+
+0x1b0 PEB
+
+
+
+TODO
+
+
+
+## 驱动开发
+
+### 开发环境配置
+
+#### 安装WDK
+
+
+
+
+
+
+
+TODO
 
 
 
