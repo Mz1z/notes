@@ -1119,11 +1119,49 @@ TODO
 
 #### 安装WDK
 
+现在官网是自动安装的，还会配置好和VS2022的插件。
 
+#### 第一个驱动程序
 
+可以参考：[编写 Hello World Windows 驱动程序 (KMDF) - Windows drivers | Microsoft Learn](https://learn.microsoft.com/zh-cn/windows-hardware/drivers/gettingstarted/writing-a-very-small-kmdf--driver)
 
+在vs2022中创建KMDF,empty即可
 
+用.c文件编写代码。
 
+```c
+#include <ntddk.h>
+
+VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
+    (DriverObject);
+    // 这里使用DbgPrintEx输出才能被调试器接收并显示
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "驱动运行~\r\n");  
+}
+
+NTSTATUS DriverEntry(
+    _In_ PDRIVER_OBJECT     DriverObject,
+    _In_ PUNICODE_STRING    RegistryPath
+){
+    (RegistryPath);
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "驱动运行~\r\n");
+    DriverObject->DriverUnload = DriverUnload;
+    return STATUS_SUCCESS;
+}
+```
+
+> 流程：代码->生成.sys->部署->运行->停止->卸载
+
+DriverEntry(); 入口函数
+
+DriverUnload(); 回调
+
+DbgPrint();   输出
+
+> 部署驱动程序:
+>
+> 使用驱动管理.exe + DebugView(监视核心)
+>
+> 
 
 TODO
 
