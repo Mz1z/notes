@@ -1163,7 +1163,111 @@ DbgPrint();   输出
 >
 > 
 
-TODO
+### 驱动调试
+
+可以用来双机调试的工具：virtualkd
+
+#### 符号
+
+> File -> Symbol File Path (control+S)
+>
+> ![image-20240112191242007](/img/image-20240112191242007.png)
+
+复制编译好的符号路径然后.reload：
+
+![image-20240112191538211](/img/image-20240112191538211.png)
+
+#### 断点
+
+```c
+_asm{
+    int 3;
+}
+```
+
+### 内核编程基础
+
+只能用r0的api。
+
+```
+#include <ntddk.h>
+```
+
+遇到问题查WDK文档。
+
+如果要使用未导出函数则需要自己定义，通过特征码搜索或者解析内核PDB。
+
+```c
+返回值：NTSTATUS
+```
+
+![image-20240112192550625](/img/image-20240112192550625.png)
+
+#### 使用异常处理
+
+![image-20240112192810672](/img/image-20240112192810672.png)
+
+```c
+__try{
+    
+}__except(filter_value){
+    ...
+}
+```
+
+#### 内核内存函数
+
+![image-20240112192929376](/img/image-20240112192929376.png)
+
+#### 内核字符串
+
+除了CHAR/WCHAR(wchar_t)，还有ANSI_STRING/UNICODE_STRING
+
+![image-20240112193629160](/img/image-20240112193629160.png)
+
+![image-20240112193702441](/img/image-20240112193702441.png)
+
+### 内核空间与内核模块
+
+通过DRIVER_OBJECT->DriverSection(指向双向链表)可以遍历内核模块。
+
+这个和PEB.ldr中的双向链表几乎一致。
+
+### r0与r3通信（常规方式）
+
+#### 设备对象
+
+内核模块接收消息只能通过设备对象来进行。
+
+IRP(I/O Request Package)
+
+![image-20240112213820889](/img/image-20240112213820889.png)
+
+#### 创建设备对象
+
+IoCreate
+
+
+
+
+
+
+
+
+
+# Windbg指令
+
+```bash
+g            # 继续执行
+u <addr>     # 反汇编某地址
+dt xxx       # 查看某种数据结构
+.reload       # 重新加载调试符号
+!process 0 0   # 查看所有进程
+.process xxxxxx # 进入进程对应的内核空间
+
+```
+
+
 
 
 
