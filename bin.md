@@ -1245,7 +1245,44 @@ IRP(I/O Request Package)
 
 #### 创建设备对象
 
-IoCreate
+```c
+// 创建设备对象名称，这个名字是给r0看的，要挂到树上
+UNICODE_STRING Devicename;
+RtlInitUnicodeString(&Devicename, L"\\Device\\MyDevice");
+// 创建设备
+IoCreateDevice(
+    pDriver,    // 当前设备属于哪个驱动对象
+    0,
+    &Devicename,    // 设备对象的名称
+    FILE_DEVICE_UNKNOWN,
+    FILE_DEVICE_SECURE_OPEN,
+    FALSE,
+    &pDeviceObj         // [out]设备对象指针
+);
+```
+
+#### 设置交互数据方式
+
+```c
+pDeviceObj->Flags |= DO_BUFFERED_IO;  // 缓冲区方式读写
+// DO_DIRECT_IO       // 直接方式读写
+```
+
+#### 创建符号链接名称
+
+```c
+#define SYMBOLICLINK_NAME L"\\??\\MyTestDriver"
+     // r3中为"\\\\.\\MyTestDriver"
+RtlInitUnicodeString(&SymbolicLinkName, SYMBOLICLINK_NAME);
+```
+
+#### 创建符号链接
+
+本质上是起别名给r3用。
+
+```c
+
+```
 
 
 
