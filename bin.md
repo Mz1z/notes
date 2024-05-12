@@ -1280,8 +1280,103 @@ RtlInitUnicodeString(&SymbolicLinkName, SYMBOLICLINK_NAME);
 
 本质上是起别名给r3用。
 
-```c
+#### IRP与派遣函数
 
+![image-20240512141734621](/img/image-20240512141734621.png)
+
+#### IRP的类型
+
+![image-20240512142020003](/img/image-20240512142020003.png)
+
+![image-20240512142140926](/img/image-20240512142140926.png)
+
+用的最多最灵活的是IRP_MJ_DEVICE_CONTROL，是应用层调用deviceControl函数产生的。
+
+![image-20240512142428605](/img/image-20240512142428605.png)
+
+MajorFunction里面存储的是派遣函数。
+
+完整驱动部分代码：
+
+```c
+#include <ntddk.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
+    (DriverObject);
+    // 这里使用DbgPrintEx输出才能被调试器接收并显示
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "DriverUnload~\r\n");
+}
+
+NTSTATUS IrpCreateProc(PDEVICE_OBJECT pDevice, PIRP pIrp) {
+    (pDevice);
+    // 处理自己的业务
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[info] IrpCreateProc~\r\n");
+    // 设置返回状态
+    pIrp->IoStatus.Status = STATUS_SUCCESS;   // getlasterror()
+    pIrp->IoStatus.Information = 0;            // 返回给r3多少数据
+    IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS IrpCloseProc(PDEVICE_OBJECT pDevice, PIRP pIrp) {
+    (pDevice);
+    // 处理自己的业务
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[info] IrpCloseProc~\r\n");
+    // 设置返回状态
+    pIrp->IoStatus.Status = STATUS_SUCCESS;   // getlasterror()
+    pIrp->IoStatus.Information = 0;            // 返回给r3多少数据
+    IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS DriverEntry(
+    _In_ PDRIVER_OBJECT     DriverObject,
+    _In_ PUNICODE_STRING    RegistryPath
+){
+    (RegistryPath);
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "DriverEntry~\r\n");
+    DriverObject->DriverUnload = DriverUnload;
+
+    PDEVICE_OBJECT pDeviceObj = NULL;
+    // 创建设备对象名称，这个名字是给r0看的，要挂到树上
+    UNICODE_STRING Devicename;
+    RtlInitUnicodeString(&Devicename, L"\\Device\\MyDevice");
+
+    // 创建设备
+    NTSTATUS status = IoCreateDevice(
+        DriverObject,    // 当前设备属于哪个驱动对象
+        0,
+        &Devicename,    // 设备对象的名称
+        FILE_DEVICE_UNKNOWN,
+        FILE_DEVICE_SECURE_OPEN,
+        FALSE,
+        &pDeviceObj         // [out]设备对象指针
+    );
+    if (status != STATUS_SUCCESS) {
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[err] IoCreateDevice~\r\n");
+        return status;
+    }
+    // 设置交互数据方式
+    pDeviceObj->Flags |= DO_BUFFERED_IO;
+    // 创建符号链接名称
+    UNICODE_STRING SymbolicLinkName;
+    // r3: CreateFile "\\\\.\\MyTestDriver"
+    RtlInitUnicodeString(&SymbolicLinkName, L"\\??\\MyTestDriver");
+    // 创建符号链接
+    status = IoCreateSymbolicLink(&SymbolicLinkName, &Devicename);
+    if (status != STATUS_SUCCESS) {
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[err] IoCreateSymbolicLink~\r\n");
+        return status;
+    }
+    // 设置派遣函数
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = IrpCreateProc;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = IrpCloseProc;
+    //DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IrpDeviceProc;
+    
+    return STATUS_SUCCESS;
+}
 ```
 
 
