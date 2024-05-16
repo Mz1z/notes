@@ -1381,6 +1381,82 @@ NTSTATUS DriverEntry(
 
 
 
+### SSTD hook
+
+SystemServiceTable
+
+通过线程结构体找到这个表
+
+```
+> dd KeServiceDescriptorTable    # SSDT
+```
+
+![image-20240516142126243](/img/image-20240516142126243.png)
+
+![image-20240516143314152](/img/image-20240516143314152.png)
+
+![image-20240516143406558](/img/image-20240516143406558.png)
+
+
+
+## 内存管理
+
+内核中是通过链表将空闲空间穿起来管理的。
+
+### 用户空间的地址管理
+
+搜索二叉树
+
+找进程_EPROCESS中的Vad_Root(在我这个系统中位于0x7d8的位置)，这个就是搜索二叉树的根。
+
+```
+1: kd> dt _EPROCESS ffff8105498dc080
+nt!_EPROCESS
+   +0x000 Pcb              : _KPROCESS
+   +0x438 ProcessLock      : _EX_PUSH_LOCK
+   +0x440 UniqueProcessId  : 0x00000000`00000c40 Void
+	...
+   +0x7d0 ModifiedPageCount : 7
+   +0x7d4 ExitStatus       : 0n259
+   +0x7d8 VadRoot          : _RTL_AVL_TREE
+   +0x7e0 VadHint          : 0xffff8105`472cbe60 Void
+   +0x7e8 VadCount         : 0x60
+   +0x7f0 VadPhysicalPages : 0
+   +0x7f8 VadPhysicalPagesLimit : 0
+...
+
+```
+
+该节点的类型是\_MMVAD(x86)，但是实际我在x64操作的时候似乎是_RTL_BALANCE_NODE
+
+```
+1: kd> dt _MMVAD
+nt!_MMVAD
+   +0x000 Core             : _MMVAD_SHORT
+   +0x040 u2               : <anonymous-tag>
+   +0x048 Subsection       : Ptr64 _SUBSECTION
+   +0x050 FirstPrototypePte : Ptr64 _MMPTE
+   +0x058 LastContiguousPte : Ptr64 _MMPTE
+   +0x060 ViewLinks        : _LIST_ENTRY
+   +0x070 VadsProcess      : Ptr64 _EPROCESS
+   +0x078 u4               : <anonymous-tag>
+   +0x080 FileObject       : Ptr64 _FILE_OBJECT
+```
+
+```
+1: kd> dt _RTL_BALANCED_NODE 0xffff810549945ce0
+nt!_RTL_BALANCED_NODE
+   +0x000 Children         : [2] 0xffff8105`472cb690 _RTL_BALANCED_NODE
+   +0x000 Left             : 0xffff8105`472cb690 _RTL_BALANCED_NODE
+   +0x008 Right            : 0xffff8105`49947400 _RTL_BALANCED_NODE
+   +0x010 Red              : 0y1
+   +0x010 Balance          : 0y01
+   +0x010 ParentValue      : 1
+
+```
+
+
+
 
 
 
@@ -1391,7 +1467,7 @@ NTSTATUS DriverEntry(
 
 ```bash
 g            # 继续执行
-u <addr>     # 反汇编某地址
+u <addr>     # 反汇编某地址/函数
 dt xxx       # 查看某种数据结构
 .reload       # 重新加载调试符号
 !process 0 0   # 查看所有进程
