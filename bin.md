@@ -1296,17 +1296,29 @@ RtlInitUnicodeString(&SymbolicLinkName, SYMBOLICLINK_NAME);
 
 MajorFunction里面存储的是派遣函数。
 
-完整驱动部分代码：
+完整IRP通信驱动代码：
 
 ```c
 #include <ntddk.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+// 0-2047是保留的，可以用2048-4095
+#define OPER1 CTL_CODE(FILE_DEVICE_UNKNOWN, 3001, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define OPER2 CTL_CODE(FILE_DEVICE_UNKNOWN, 3002, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+PDEVICE_OBJECT g_pDeviceObj = NULL;
 VOID DriverUnload(PDRIVER_OBJECT DriverObject) {
     (DriverObject);
-    // 这里使用DbgPrintEx输出才能被调试器接收并显示
+    
+    // 删除符号链接
+    UNICODE_STRING SymbolicLinkName;
+    RtlInitUnicodeString(&SymbolicLinkName, L"\\??\\MyTestDriver");
+    IoDeleteSymbolicLink(&SymbolicLinkName);
+    // 删除设备
+    IoDeleteDevice(g_pDeviceObj);
     DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "DriverUnload~\r\n");
+    
 }
 
 NTSTATUS IrpCreateProc(PDEVICE_OBJECT pDevice, PIRP pIrp) {
@@ -1329,6 +1341,64 @@ NTSTATUS IrpCloseProc(PDEVICE_OBJECT pDevice, PIRP pIrp) {
     pIrp->IoStatus.Information = 0;            // 返回给r3多少数据
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
     return STATUS_SUCCESS;
+}
+
+NTSTATUS IrpDeviceProc(PDEVICE_OBJECT pDevice, PIRP pIrp) {
+    (pDevice);
+    // 处理自己的业务
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[info] IrpDeviceProc~\r\n");
+    NTSTATUS status = STATUS_INVALID_DEVICE_REQUEST;
+    PIO_STACK_LOCATION pIrpStack;
+    ULONG uIoControlCode;
+    PVOID pIoBuffer;
+    ULONG uInLength;
+    ULONG uOutLength;
+    
+    // 初始化输入输出缓冲区
+    UCHAR ReadBuf[1024] = { 0 };
+    UCHAR WriteBuf[] = "hello Mz1! ";
+
+    // 获取IRP数据
+    pIrpStack = IoGetCurrentIrpStackLocation(pIrp);
+    // 获取控制码
+    uIoControlCode = pIrpStack->Parameters.DeviceIoControl.IoControlCode;
+    // 获取缓冲区地址（输入和输出缓冲区都是一个）
+    pIoBuffer = pIrp->AssociatedIrp.SystemBuffer;
+    // r3 发送数据的长度
+    uInLength = pIrpStack->Parameters.DeviceIoControl.InputBufferLength;
+    // r0 发送数据的长度
+    uOutLength = pIrpStack->Parameters.DeviceIoControl.OutputBufferLength;
+
+    // 根据操作码决定操作
+    switch (uIoControlCode) {
+    case OPER1:
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[info] OPER1\r\n");
+        // 接收&输出数据
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "       接收字节数: %d \r\n", uInLength);
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "       输出字节数: %d \r\n", uOutLength);
+        // read
+        memcpy(ReadBuf, pIoBuffer, uInLength);
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "       recv: %s \r\n", ReadBuf);
+        // write
+        memcpy(pIoBuffer, WriteBuf, sizeof(WriteBuf));
+        // set status
+        pIrp->IoStatus.Information = sizeof(WriteBuf);
+        status = STATUS_SUCCESS;
+        break;
+    case OPER2:
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[info] OPER2\r\n");
+        pIrp->IoStatus.Information = 0;
+        status = STATUS_SUCCESS;
+        break;
+    }
+
+
+
+
+    // 设置返回状态
+    pIrp->IoStatus.Status = status;   // getlasterror()
+    IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+    return status;
 }
 
 NTSTATUS DriverEntry(
@@ -1358,6 +1428,7 @@ NTSTATUS DriverEntry(
         DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[err] IoCreateDevice~\r\n");
         return status;
     }
+    g_pDeviceObj = pDeviceObj;    // 复制一份全局对象
     // 设置交互数据方式
     pDeviceObj->Flags |= DO_BUFFERED_IO;
     // 创建符号链接名称
@@ -1373,11 +1444,70 @@ NTSTATUS DriverEntry(
     // 设置派遣函数
     DriverObject->MajorFunction[IRP_MJ_CREATE] = IrpCreateProc;
     DriverObject->MajorFunction[IRP_MJ_CLOSE] = IrpCloseProc;
-    //DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IrpDeviceProc;
+    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IrpDeviceProc;
     
     return STATUS_SUCCESS;
 }
 ```
+
+对应的r3测试代码：
+
+```c
+// r3proj.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
+//
+
+#include <iostream>
+#include <Windows.h>
+#include <winioctl.h>
+
+// 0-2047是保留的，可以用2048-4095
+#define OPER1 CTL_CODE(FILE_DEVICE_UNKNOWN, 3001, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define OPER2 CTL_CODE(FILE_DEVICE_UNKNOWN, 3002, METHOD_BUFFERED, FILE_ANY_ACCESS)
+
+HANDLE g_hDevice;
+
+DWORD IoControl(DWORD dwIoCode, PVOID InBuff, DWORD InBuffLen, PVOID OutBuff, DWORD OutBuffLen) {
+    DWORD dw = 0;
+    // 设备句柄/操作码/输入缓冲区地址/长度/输出缓冲区地址/输出缓冲区长度/返回长度/指向OVERLAPPED此处为NULL
+    DeviceIoControl(g_hDevice, dwIoCode, InBuff, InBuffLen, OutBuff, OutBuffLen, &dw, NULL);
+    return dw;
+}
+
+
+
+int main()
+{
+    // 打开Device
+    // \\\\.\\MyTestDriver
+    g_hDevice = CreateFile(L"\\\\.\\MyTestDriver", GENERIC_READ|GENERIC_WRITE,0,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+    DWORD err = GetLastError();
+    printf("err: %d \n", err);
+    if (g_hDevice != INVALID_HANDLE_VALUE) {
+        printf("CreateFile ok \n");
+    }
+    else {
+        printf("error \n");
+        return -1;
+    }
+    // 测试通信
+    UCHAR InBuffer[1024] = "hihihihihihihihihihihihiashdasda";
+    UCHAR OutBuffer[1024] = { 0 };
+    DWORD ret = IoControl(OPER1, InBuffer,  sizeof(InBuffer), OutBuffer, sizeof(OutBuffer));
+    
+    
+    printf("r3 recv[%d]: `%s` \n", ret, OutBuffer);
+    CloseHandle(g_hDevice);
+
+    printf("Over ok \n");
+    return 0;
+}
+```
+
+
+
+
+
+
 
 
 
